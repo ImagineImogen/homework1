@@ -19,25 +19,29 @@ def is_magical(f):
 
     return f.startswith('__') and f.endswith('__')
 
-Path = ''
 
 def is_py_file(path, max_length):
     filenames = []
     for dirname, dirs, files in os.walk(path, topdown=True):
-        for file in files:
-            if file.endswith('.py') and len(filenames) < 100:
-                filenames.append(os.path.join(dirname, file))
+        if len(filenames) >= max_length:
+            break
+        else:
+            py_files = file_filtering(files, dirname, formatting=".py")
+        filenames.extend(py_files)
     print('total %s files' % len(filenames))
     return filenames
 
+def file_filtering(files, dirname, formatting):
+    return [os.path.join(dirname, f) for f in files if f.endswith(formatting)]
 
-def get_trees(with_filenames=False, with_file_content=False):
+
+def get_trees(path, with_filenames=False, with_file_content=False):
 
     """
     Returns the trees list including every file tree
     """
     trees = []
-    filenames = is_py_file(path= Path, max_length= 100)
+    filenames = is_py_file(path, max_length= 100)
     for filename in filenames:
         with open(filename, 'r', encoding='utf-8') as attempt_handler:
             main_file_content = attempt_handler.read()
@@ -62,10 +66,7 @@ def get_verbs_from_function_name(function_name):
 
 def get_top_verbs_in_path(path, top_size=10):
     #Returns a list of top_size = 10 elements
-
-    global Path
-    Path = path
-    trees = [t for t in get_trees(None) if t]
+    trees = [t for t in get_trees(path) if t]
     functions = [f for f in flat([[node.name.lower() for node in ast.walk(t) if isinstance(node, ast.FunctionDef)] for t in trees]) if not is_magical(f)]
     print('functions extracted')
     verbs = flat([get_verbs_from_function_name(function_name) for function_name in functions])
